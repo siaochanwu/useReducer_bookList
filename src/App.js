@@ -15,7 +15,8 @@ function reducer(state, action) {
     case ACTIONS.CHANGE_FILTER:
       return {
         ...state,
-        search: { ...state.search, keyword: action.payload.keyword }
+        search: { ...state.search, keyword: action.payload.keyword },
+        pagination: { ...state.pagination, current: 1 }
       }
     case ACTIONS.CHANGE_CATEGORY:
       return {
@@ -45,12 +46,16 @@ function reducerBook(books, action) {
 }
 
 const initialState = {
-  search: { keyword: '', category: '0' }
+  search: { keyword: '', category: '0' },
+  pagination: { current: 1 }
 }
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [books, dispatchBook] = useReducer(reducerBook, Books)
+  const [totalpage, setTotalpage] = useState(Books/2)
+  const [pageStart, setPageStart] = useState(1)
+  const [pageEnd, setPageEnd] = useState(2)
 
   function handleCategory(e) {
     dispatch({ type: ACTIONS.CHANGE_CATEGORY, payload: { category: e.target.value } })
@@ -66,6 +71,12 @@ function App() {
     dispatchBook({ type: ACTIONS.SORTBY_CATEGORY, payload: { category: state.search.category, origin: Books}})
     dispatchBook({ type: ACTIONS.SORTBY_KEYWORD, payload: { keyword: state.search.keyword }})
   }, [state.search])
+
+  useEffect(() => {
+    setTotalpage(Math.ceil(books.length/2))
+    setPageStart((state.pagination.current - 1) * 2)
+    setPageEnd(state.pagination.current * 2)
+  }, [books])
 
 
   return (
@@ -100,6 +111,15 @@ function App() {
           }
         </tbody>
       </table>
+      <span>
+        {[...Array(totalpage)].map((e, index) => {
+          return <button className="bg-yellow-300 m-2 p-2" key={index}>{index + 1}</button>
+          }
+        )}
+
+      </span>
+      
+      {/* <span>{totalpage.length}</span> */}
     </div>
   );
 }
