@@ -7,7 +7,9 @@ const ACTIONS = {
   CHANGE_CATEGORY: 'change-category',
   SORTBY_CATEGORY: 'sortby-category',
   SORTBY_KEYWORD: 'sortby-keyword',
-  RESET: 'reset-books'
+  RESET: 'reset-books',
+  CHANGE_CURRENT_PAGE: 'change-page',
+  CHANGE_PAGESIZE: 'change-pagesize'
 }
 
 function reducer(state, action) {
@@ -21,7 +23,18 @@ function reducer(state, action) {
     case ACTIONS.CHANGE_CATEGORY:
       return {
         ...state,
-        search: { ...state.search, category: action.payload.category }
+        search: { ...state.search, category: action.payload.category },
+        pagination: { ...state.pagination, current: 1 }
+      }
+    case ACTIONS.CHANGE_CURRENT_PAGE:
+      return {
+        ...state,
+        pagination: { ...state.pagination, current: action.payload.current }
+      }
+    case ACTIONS.CHANGE_PAGESIZE:
+      return {
+        ...state,
+        pagination: { ...state.pagination, pageSize: action.payload.pageSize }
       }
     default:
       return state
@@ -46,15 +59,15 @@ function reducerBook(books, action) {
 }
 
 const initialState = {
-  search: { keyword: '', category: '0' },
-  pagination: { current: 1 }
+  search: { keyword: '', category: '全部分類' },
+  pagination: { current: 1, pageSize: 6 }
 }
 
 function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [books, dispatchBook] = useReducer(reducerBook, Books)
-  const [totalpage, setTotalpage] = useState(Books/2)
-  const [pageStart, setPageStart] = useState(1)
+  const [totalpage, setTotalpage] = useState(Books.length/2)
+  const [pageStart, setPageStart] = useState(0)
   const [pageEnd, setPageEnd] = useState(2)
 
   function handleCategory(e) {
@@ -65,6 +78,13 @@ function App() {
     dispatch({ type: ACTIONS.CHANGE_FILTER, payload: { keyword: e.target.value } })
   }
 
+  function handlePage(e) {
+    dispatch({ type: ACTIONS.CHANGE_CURRENT_PAGE, payload: { current: e } })
+  }
+
+  function handlePageSize(e) {
+    dispatch({ type: ACTIONS.CHANGE_PAGESIZE, payload: { pageSize: e.target.value } })
+  }
 
   useEffect(() => {
     dispatchBook({ type: ACTIONS.RESET, payload: { origin: Books}})
@@ -73,10 +93,10 @@ function App() {
   }, [state.search])
 
   useEffect(() => {
-    setTotalpage(Math.ceil(books.length/2))
-    setPageStart((state.pagination.current - 1) * 2)
-    setPageEnd(state.pagination.current * 2)
-  }, [books])
+    setTotalpage(Math.ceil(books.length/state.pagination.pageSize))
+    setPageStart((state.pagination.current - 1) * state.pagination.pageSize)
+    setPageEnd(state.pagination.current * state.pagination.pageSize)
+  }, [state.pagination.current, state.pagination.pageSize])
 
 
   return (
@@ -100,8 +120,8 @@ function App() {
         </thead>
         <tbody>
           {
-            books.map(book => {
-              return <tr>
+            books.slice(pageStart, pageEnd).map(book => {
+              return <tr key={book.title}>
                 <td className="border-2">{book.title}</td>
                 <td className="border-2">{book.price}</td>
                 <td className="border-2">{book.category}</td>
@@ -111,15 +131,17 @@ function App() {
           }
         </tbody>
       </table>
-      <span>
-        {[...Array(totalpage)].map((e, index) => {
-          return <button className="bg-yellow-300 m-2 p-2" key={index}>{index + 1}</button>
-          }
-        )}
-
-      </span>
-      
-      {/* <span>{totalpage.length}</span> */}
+      <div className="flex justify-center">
+        <span>{[...Array(totalpage)].map((e, index) => {
+            return <button className="bg-yellow-300 my-2 mx-1 px-2 rounded-md" key={index} onClick={() => handlePage(index + 1)}>{index + 1}</button>
+            }
+          )}</span>
+        <select className="border-2" value={state.pagination.pageSize} onChange={handlePageSize}>
+          <option value="1">1 / page</option>
+          <option value="2">2 / page</option>
+          <option value="6">6 / page</option>
+        </select>
+      </div>
     </div>
   );
 }
